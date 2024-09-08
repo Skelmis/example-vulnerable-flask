@@ -164,8 +164,8 @@ def get_next_image_id():
     _conn = sqlite3.connect(image_db_file_location)
     _c = _conn.cursor()
 
-    result = _c.execute("""SELECT Count(*) FROM images""").fetchone()[0]
-    return str(result + 1)
+    result = _c.execute("""SELECT Max(uid) from images""").fetchone()[0]
+    return str(int(result) + 1)
 
 
 def list_images_for_user(owner):
