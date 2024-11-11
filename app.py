@@ -101,7 +101,7 @@ def fun_private():
         )
 
         return render_template(
-            "private_page.html", notes=notes_table, images=images_table
+            "private_page.html.j2", notes=notes_table, images=images_table
         )
     else:
         return abort(401)
