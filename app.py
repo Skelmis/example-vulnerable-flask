@@ -311,5 +311,16 @@ def open_redirect():
     return redirect(url)
 
 
+@app.route("/get", methods=["GET"])
+def ssrf():
+    url = request.args.get("url", "/")
+    return requests.get(url).content
+
+
+@app.get("/advanced")
+def fun_advanced():
+    return render_template("advanced.html")
+
+
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0")

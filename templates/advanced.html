@@ -1,0 +1,20 @@
+{% extends "layout.html" %}
+{% block page_title %}Advanced Page{% endblock %}
+{% block body %}
+    {{ super() }}
+
+    <h4>This page contains a few more advanced topics for power users to have a go at exploiting.</h4>
+
+    <hr>
+
+    Maybe there is some deserialization in a POST request to `/upload_serial_data` within a field "data".
+
+    <hr>
+
+    Maybe there is a way to get an open redirect via `/redirect` and a specific query param
+
+    <hr>
+
+    Maybe `/ssrf` makes callouts?
+
+{% endblock %}
