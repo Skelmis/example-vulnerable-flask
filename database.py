@@ -1,0 +1,250 @@
+import sqlite3
+import hashlib
+import datetime
+
+db_file_location = "database_file/site.db"
+
+
+def create_db():
+    _conn = sqlite3.connect(db_file_location)
+    _c = _conn.cursor()
+
+    _c.execute(
+        """
+    create table images
+(
+    uid       TEXT
+        unique,
+    owner     text,
+    name      text,
+    timestamp text
+)"""
+    )
+    _c.execute(
+        """create table notes
+(
+    user      text,
+    timestamp text,
+    note      text,
+    note_id   text
+);
+"""
+    )
+    _c.execute(
+        """create table users
+(
+    id       text
+        primary key,
+    pw       text,
+    is_admin integer
+);"""
+    )
+    _conn.commit()
+    _conn.close()
+
+
+def list_users():
+    _conn = sqlite3.connect(db_file_location)
+    _c = _conn.cursor()
+
+    _c.execute("SELECT id FROM users;")
+    result = [x[0] for x in _c.fetchall()]
+
+    _conn.close()
+
+    return result
+
+
+def verify(id, pw) -> bool:
+    _conn = sqlite3.connect(db_file_location)
+    _c = _conn.cursor()
+
+    _c.execute(
+        "SELECT pw FROM users WHERE id = '"
+        + id
+        + "' and pw = '"
+        + hashlib.sha256(pw.encode()).hexdigest()
+        + "';"
+    )
+    result = _c.fetchone()
+
+    _conn.close()
+
+    return result is not None
+
+
+def delete_user_from_db(user_id):
+    _conn = sqlite3.connect(db_file_location)
+    _c = _conn.cursor()
+    _c.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    _conn.commit()
+    _conn.close()
+
+    # when we delete a user FROM database USERS, we also need to delete all his or her notes data FROM database NOTES
+    _conn = sqlite3.connect(db_file_location)
+    _c = _conn.cursor()
+    _c.execute("DELETE FROM notes WHERE user = ?", (user_id,))
+    _conn.commit()
+    _conn.close()
+
+    # when we delete a user FROM database USERS, we also need to
+    # [1] delete all his or her images FROM image pool (done in app.py)
+    # [2] delete all his or her images records FROM database IMAGES
+    _conn = sqlite3.connect(db_file_location)
+    _c = _conn.cursor()
+    _c.execute("DELETE FROM images WHERE owner = ?;", (user_id,))
+    _conn.commit()
+    _conn.close()
+
+
+def add_user(id, pw):
+    _conn = sqlite3.connect(db_file_location)
+    _c = _conn.cursor()
+
+    _c.execute(
+        "INSERT INTO users values(?, ?, 0)",
+        (id, hashlib.sha256(pw.encode()).hexdigest()),
+    )
+
+    _conn.commit()
+    _conn.close()
+
+
+def user_is_admin(_id) -> bool:
+    if _id is None:
+        return False
+
+    _conn = sqlite3.connect(db_file_location)
+    _c = _conn.cursor()
+
+    _c.execute("SELECT is_admin FROM users WHERE id = '" + _id + "'")
+    result = _c.fetchone()[0]
+
+    _conn.close()
+
+    return result == 1
+
+
+def read_note_from_db(id):
+    _conn = sqlite3.connect(db_file_location)
+    _c = _conn.cursor()
+
+    command = "SELECT note_id, timestamp, note FROM notes WHERE user = '" + id + "';"
+    _c.execute(command)
+    result = _c.fetchall()
+
+    _conn.commit()
+    _conn.close()
+
+    return result
+
+
+def match_user_id_with_note_id(note_id):
+    # Given the note id, confirm if the current user is the owner of the note which is being operated.
+    _conn = sqlite3.connect(db_file_location)
+    _c = _conn.cursor()
+
+    command = "SELECT user FROM notes WHERE note_id = '" + note_id + "';"
+    _c.execute(command)
+    result = _c.fetchone()[0]
+
+    _conn.commit()
+    _conn.close()
+
+    return result
+
+
+def write_note_into_db(id, note_to_write):
+    _conn = sqlite3.connect(db_file_location)
+    _c = _conn.cursor()
+
+    current_timestamp = str(datetime.datetime.now())
+    _c.execute(
+        "INSERT INTO notes values(?, ?, ?, ?)",
+        (
+            id,
+            current_timestamp,
+            note_to_write,
+            hashlib.sha1((id + current_timestamp).encode()).hexdigest(),
+        ),
+    )
+
+    _conn.commit()
+    _conn.close()
+
+
+def delete_note_from_db(note_id):
+    _conn = sqlite3.connect(db_file_location)
+    _c = _conn.cursor()
+
+    _c.execute("DELETE FROM notes WHERE note_id = ?;", (note_id,))
+
+    _conn.commit()
+    _conn.close()
+
+
+def image_upload_record(uid, owner, image_name, timestamp):
+    _conn = sqlite3.connect(db_file_location)
+    _c = _conn.cursor()
+
+    _c.execute(
+        "INSERT INTO images VALUES (?, ?, ?, ?)", (uid, owner, image_name, timestamp)
+    )
+
+    _conn.commit()
+    _conn.close()
+
+
+def get_next_image_id():
+    # Back port for initial DB design
+    _conn = sqlite3.connect(db_file_location)
+    _c = _conn.cursor()
+
+    result = _c.execute("""SELECT Max(uid) from images""").fetchone()[0]
+    return str(int(result) + 1)
+
+
+def list_images_for_user(owner):
+    _conn = sqlite3.connect(db_file_location)
+    _c = _conn.cursor()
+
+    command = "SELECT uid, timestamp, name FROM images WHERE owner = '{0}'".format(
+        owner
+    )
+    _c.execute(command)
+    result = _c.fetchall()
+
+    _conn.commit()
+    _conn.close()
+
+    return result
+
+
+def match_user_id_with_image_uid(image_uid):
+    # Given the note id, confirm if the current user is the owner of the note which is being operated.
+    _conn = sqlite3.connect(db_file_location)
+    _c = _conn.cursor()
+
+    command = "SELECT owner FROM images WHERE uid = '" + image_uid + "';"
+    _c.execute(command)
+    result = _c.fetchone()[0]
+
+    _conn.commit()
+    _conn.close()
+
+    return result
+
+
+def delete_image_from_db(image_uid):
+    _conn = sqlite3.connect(db_file_location)
+    _c = _conn.cursor()
+
+    _c.execute("DELETE FROM images WHERE uid = ?;", (image_uid,))
+
+    _conn.commit()
+    _conn.close()
+
+
+if __name__ == "__main__":
+    # print(list_users())
+    create_db()
