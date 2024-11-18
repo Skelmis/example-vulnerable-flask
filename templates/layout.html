@@ -27,6 +27,7 @@
             {% if session.get("current_user", None) == "admin" %}
 	      <li><a href="{{ url_for('fun_admin') }}">Admin Dashboard</a></li>
 	    {% endif %}
+        <li><a href="{{ url_for('fun_advanced') }}">Advanced challenges</a></li>
         </ul>
         
         <ul class="nav navbar-nav navbar-right">
