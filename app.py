@@ -101,7 +101,10 @@ def fun_private():
         )
 
         return render_template(
-            "private_page.html.j2", notes=notes_table, images=images_table
+            "private_page.html.j2",
+            notes=notes_table,
+            images=images_table,
+            user=session["current_user"],
         )
     else:
         return abort(401)
@@ -182,10 +185,9 @@ def fun_upload_image():
             file.save(
                 os.path.join(app.config["UPLOAD_FOLDER"], image_uid + "-" + filename)  # type: ignore
             )
+            user = request.form.get("user") or session["current_user"]
             # Record this uploading in database
-            image_upload_record(
-                image_uid, session["current_user"], filename, upload_time
-            )
+            image_upload_record(image_uid, user, filename, upload_time)
             flash("File uploaded", category="success")
             return redirect(url_for("fun_private"))
 
